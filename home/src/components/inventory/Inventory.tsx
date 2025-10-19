@@ -6,6 +6,7 @@ import { sepolia } from 'viem/chains';
 import { abi, address as contractAddress } from '../../abi/GameNFT';
 import { useZamaInstance } from '../../hooks/useZamaInstance';
 import { useEthersSigner } from '../../hooks/useEthersSigner';
+import '../../styles/Inventory.css';
 
 type Item = {
   tokenId: bigint;
@@ -140,42 +141,129 @@ export function Inventory() {
     }
   };
 
-  if (!address) return <div style={{ marginTop: 16 }}>Connect wallet to view your NFTs.</div>;
+  if (!address) {
+    return (
+      <div className="inventory-section">
+        <div className="inventory-empty">
+          Connect your wallet to view your NFTs
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ marginTop: 16 }}>
-      <h2 style={{ fontSize: 18 }}>Your Inventory</h2>
-      {(loading || zamaLoading) && <div>Loading...</div>}
-      {error && <div style={{ color: 'crimson' }}>{error}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-        {items.map((it) => (
-          <div key={it.tokenId.toString()} style={{ background: '#fff', border: '1px solid #eee', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontWeight: 600 }}>Token #{it.tokenId.toString()}</div>
-            <div>Rarity: {renderRarity(it.rarity)}</div>
-            <div>Attack: {it.attack !== undefined ? it.attack.toString() : '🔒'}</div>
-            <div>Defense: {it.defense !== undefined ? it.defense.toString() : '🔒'}</div>
-            {(it.attack === undefined || it.defense === undefined) && (
-              <button
-                onClick={() => handleDecrypt(it)}
-                disabled={Boolean(decrypting[it.tokenId.toString()]) || zamaLoading || !instance}
-                style={{ marginTop: 8, padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', background: '#2563eb', color: '#fff', cursor: 'pointer' }}
-              >
-                {decrypting[it.tokenId.toString()] ? 'Decrypting...' : 'Decrypt Stats'}
-              </button>
-            )}
-            {decryptErrors[it.tokenId.toString()] && (
-              <div style={{ marginTop: 6, color: 'crimson' }}>{decryptErrors[it.tokenId.toString()]}</div>
-            )}
-          </div>
-        ))}
-        {items.length === 0 && !loading && !zamaLoading && <div>No NFTs yet. Try attacking!</div>}
+    <div className="inventory-section">
+      <div className="inventory-header">
+        <h2 className="inventory-title">
+          <span>🎒</span>
+          Your Collection
+        </h2>
+        <p className="inventory-subtitle">
+          Your NFTs with FHE-encrypted stats. Only you can decrypt and view your character's true power.
+        </p>
+      </div>
+
+      {(loading || zamaLoading) && (
+        <div className="inventory-loading">
+          <div>⏳ Loading your collection...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="inventory-error">
+          ❌ {error}
+        </div>
+      )}
+
+      {!loading && !zamaLoading && items.length === 0 && (
+        <div className="inventory-empty">
+          <p>📦 No NFTs yet</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+            Start hunting monsters above to earn your first NFT!
+          </p>
+        </div>
+      )}
+
+      <div className="inventory-grid">
+        {items.map((it) => {
+          const rarityInfo = getRarityInfo(it.rarity);
+          const isDecrypted = it.attack !== undefined && it.defense !== undefined;
+
+          return (
+            <div key={it.tokenId.toString()} className={`nft-card ${rarityInfo.class}`}>
+              <div className="nft-header">
+                <div className="nft-id">#{it.tokenId.toString()}</div>
+                <div className={`nft-rarity-badge ${rarityInfo.class}`}>
+                  {rarityInfo.name}
+                </div>
+              </div>
+
+              <div className="nft-icon">{rarityInfo.icon}</div>
+
+              <div className="nft-stats">
+                <div className="nft-stat">
+                  <span className="nft-stat-label">
+                    <span>⚔️</span>
+                    Attack
+                  </span>
+                  <span className={`nft-stat-value ${!isDecrypted ? 'locked' : ''}`}>
+                    {it.attack !== undefined ? it.attack.toString() : '🔒'}
+                  </span>
+                </div>
+
+                <div className="nft-stat">
+                  <span className="nft-stat-label">
+                    <span>🛡️</span>
+                    Defense
+                  </span>
+                  <span className={`nft-stat-value ${!isDecrypted ? 'locked' : ''}`}>
+                    {it.defense !== undefined ? it.defense.toString() : '🔒'}
+                  </span>
+                </div>
+              </div>
+
+              {!isDecrypted && (
+                <button
+                  className="decrypt-button"
+                  onClick={() => handleDecrypt(it)}
+                  disabled={Boolean(decrypting[it.tokenId.toString()]) || zamaLoading || !instance}
+                >
+                  {decrypting[it.tokenId.toString()] ? (
+                    <>
+                      <span>⏳</span>
+                      Decrypting...
+                    </>
+                  ) : (
+                    <>
+                      <span>🔓</span>
+                      Reveal Stats
+                    </>
+                  )}
+                </button>
+              )}
+
+              {decryptErrors[it.tokenId.toString()] && (
+                <div className="decrypt-error">
+                  ⚠️ {decryptErrors[it.tokenId.toString()]}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function renderRarity(r: number) {
-  if (r === 0) return 'Common';
-  if (r === 1) return 'Rare';
-  if (r === 2) return 'Legendary';
-  return String(r);
+function getRarityInfo(rarity: number) {
+  switch (rarity) {
+    case 0:
+      return { name: 'Common', class: 'common', icon: '🐛' };
+    case 1:
+      return { name: 'Rare', class: 'rare', icon: '🐉' };
+    case 2:
+      return { name: 'Legendary', class: 'legendary', icon: '👹' };
+    default:
+      return { name: 'Unknown', class: 'common', icon: '❓' };
+  }
 }
