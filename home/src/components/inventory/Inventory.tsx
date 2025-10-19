@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { createPublicClient, http, Address } from 'viem';
+import { createPublicClient, http } from 'viem';
+import type { Address } from 'viem';
 import { sepolia } from 'viem/chains';
 import { abi, address as contractAddress } from '../../abi/GameNFT';
-import { FhevmInstance } from '@zama-fhe/relayer-sdk';
-import { ethers } from 'ethers';
+import { useZamaInstance } from '../../hooks/useZamaInstance';
+import { useEthersSigner } from '../../hooks/useEthersSigner';
 
 type Item = { tokenId: bigint; rarity: number; attack?: bigint; defense?: bigint };
 
@@ -13,12 +14,15 @@ export function Inventory() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { instance, isLoading: zamaLoading, error: zamaError } = useZamaInstance();
+  const signer = useEthersSigner();
 
   const client = useMemo(() => createPublicClient({ chain: sepolia, transport: http() }), []);
 
   useEffect(() => {
     if (!address) { setItems([]); return; }
-    if (!contractAddress || !abi || abi.length === 0) { setError('Contract not configured'); return; }
+    if (!contractAddress || !abi) { setError('Contract not configured'); return; }
+    if (!instance || !signer) { return; }
     let mounted = true;
     (async () => {
       setLoading(true); setError(null);
@@ -42,7 +46,6 @@ export function Inventory() {
         }
 
         // decrypt stats using relayer
-        const handles: string[] = [];
         for (const it of entries) {
           const atk = await client.readContract({
             address: contractAddress as Address,
@@ -57,23 +60,16 @@ export function Inventory() {
             args: [it.tokenId]
           }) as string;
           (it as any)._atkHandle = atk; (it as any)._defHandle = defn;
-          handles.push(atk, defn);
         }
 
-        // signer for EIP712
-        const provider = new ethers.BrowserProvider(window.ethereum as any);
-        const signer = await provider.getSigner();
-        const instance = new FhevmInstance({
-          publicKey: '',
-          maxRetries: 2,
-          url: 'https://relayer.testnet.zama.cloud'
-        });
+        const resolvedSigner = await signer;
+        if (!resolvedSigner) { throw new Error('Wallet not connected'); }
         const keypair = instance.generateKeypair();
         const startTimeStamp = Math.floor(Date.now() / 1000).toString();
         const durationDays = '10';
         const contractAddresses = [contractAddress];
         const eip712 = instance.createEIP712(keypair.publicKey, contractAddresses, startTimeStamp, durationDays);
-        const signature = await signer.signTypedData(
+        const signature = await resolvedSigner.signTypedData(
           eip712.domain,
           { UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification },
           eip712.message,
@@ -88,7 +84,7 @@ export function Inventory() {
           keypair.publicKey,
           signature.replace('0x',''),
           contractAddresses,
-          await signer.getAddress(),
+          await resolvedSigner.getAddress(),
           startTimeStamp,
           durationDays,
         );
@@ -107,13 +103,19 @@ export function Inventory() {
       }
     })();
     return () => { mounted = false; };
-  }, [address, client]);
+  }, [address, client, instance, signer]);
+
+  useEffect(() => {
+    if (zamaError) {
+      setError(zamaError);
+    }
+  }, [zamaError]);
 
   if (!address) return <div style={{ marginTop: 16 }}>Connect wallet to view your NFTs.</div>;
   return (
     <div style={{ marginTop: 16 }}>
       <h2 style={{ fontSize: 18 }}>Your Inventory</h2>
-      {loading && <div>Loading...</div>}
+      {(loading || zamaLoading) && <div>Loading...</div>}
       {error && <div style={{ color: 'crimson' }}>{error}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
         {items.map((it) => (
@@ -124,7 +126,7 @@ export function Inventory() {
             <div>Defense: {it.defense !== undefined ? it.defense.toString() : '🔒'}</div>
           </div>
         ))}
-        {items.length === 0 && !loading && <div>No NFTs yet. Try attacking!</div>}
+        {items.length === 0 && !loading && !zamaLoading && <div>No NFTs yet. Try attacking!</div>}
       </div>
     </div>
   );
@@ -136,4 +138,3 @@ function renderRarity(r: number) {
   if (r === 2) return 'Legendary';
   return String(r);
 }
-
