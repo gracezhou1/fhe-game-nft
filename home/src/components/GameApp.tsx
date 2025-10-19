@@ -2,17 +2,45 @@ import { useState } from 'react';
 import { Header } from './Header';
 import { AttackPanel } from './attack/AttackPanel';
 import { Inventory } from './inventory/Inventory';
+import '../styles/GameApp.css';
 
 export function GameApp() {
   const [refreshKey, setRefreshKey] = useState(0);
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '16px' }}>
+    <>
       <Header />
-      <h1 style={{ marginTop: 16, fontSize: 24 }}>FHE Game: Hunt Monsters</h1>
-      <p style={{ color: '#555' }}>Win and mint an NFT. Rarity is public; stats are private (FHE encrypted).</p>
-      <AttackPanel onComplete={() => setRefreshKey((x) => x + 1)} />
-      <Inventory key={refreshKey} />
-    </div>
+      <div className="game-container">
+        <div className="game-hero">
+          <h1 className="game-title">
+            Hunt Monsters, Earn Encrypted NFTs
+          </h1>
+          <p className="game-description">
+            Battle monsters at different difficulty levels to earn NFTs with <strong>FHE-encrypted stats</strong>.
+            Your character's true power remains private on-chain, visible only to you.
+          </p>
+          <div className="game-features">
+            <div className="feature-badge">
+              <span className="feature-icon">🔐</span>
+              <span>Fully Encrypted Stats</span>
+            </div>
+            <div className="feature-badge">
+              <span className="feature-icon">⚔️</span>
+              <span>3 Difficulty Levels</span>
+            </div>
+            <div className="feature-badge">
+              <span className="feature-icon">🎯</span>
+              <span>Rare & Legendary Drops</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="game-content">
+          <AttackPanel onComplete={() => setRefreshKey((x) => x + 1)} />
+          <div className="divider"></div>
+          <Inventory key={refreshKey} />
+        </div>
+      </div>
+    </>
   );
 }
 
