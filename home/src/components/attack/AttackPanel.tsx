@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import { abi, address as contractAddress } from '../../abi/GameNFT';
+import { useEthersSigner } from '../../hooks/useEthersSigner';
 
 type Props = { onComplete: () => void };
 
@@ -9,15 +10,17 @@ export function AttackPanel({ onComplete }: Props) {
   const { address } = useAccount();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const signer = useEthersSigner();
 
   const attack = async (difficulty: 0 | 1 | 2) => {
     if (!window.ethereum) { setMessage('No wallet'); return; }
-    if (!contractAddress || !abi || abi.length === 0) { setMessage('Contract not configured'); return; }
+    if (!contractAddress || !abi) { setMessage('Contract not configured'); return; }
+    if (!signer) { setMessage('No signer available'); return; }
     setLoading(true); setMessage(null);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum as any);
-      const signer = await provider.getSigner();
-      const c = new ethers.Contract(contractAddress, abi as any, signer);
+      const resolvedSigner = await signer;
+      if (!resolvedSigner) { throw new Error('Wallet not connected'); }
+      const c = new ethers.Contract(contractAddress, abi as any, resolvedSigner);
       const tx = await c.attackMonster(difficulty);
       await tx.wait();
       setMessage('Attack submitted. Check inventory.');
@@ -50,4 +53,3 @@ const btnStyle: React.CSSProperties = {
   color: '#fff',
   cursor: 'pointer'
 };
-
