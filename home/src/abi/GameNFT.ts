@@ -1,5 +1,5 @@
 // Auto-generated on deploy
-export const address = "0x5D46f4fe8749de2b15DC644b376E97Efa665b8A2";
+export const address = "0x88e45192fbEB01d22E144277AF2da11245ac17fB";
 export const abi = [
   {
     "inputs": [
@@ -16,6 +16,11 @@ export const abi = [
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "ZamaProtocolUnsupported",
+    "type": "error"
   },
   {
     "anonymous": false,
@@ -238,6 +243,19 @@ export const abi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "confidentialProtocolId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -342,19 +360,6 @@ export const abi = [
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "protocolId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "pure",
     "type": "function"
   },
   {

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import {FHE, euint32} from "@fhevm/solidity/lib/FHE.sol";
-import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title FHE Game NFT with encrypted stats
 /// @notice Simple ERC721-like NFT where rarity is public and stats are FHE-encrypted
-contract GameNFT is SepoliaConfig {
+contract GameNFT is ZamaEthereumConfig {
     // Minimal ERC165
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == 0x80ac58cd || interfaceId == 0x01ffc9a7; // ERC721 & ERC165
